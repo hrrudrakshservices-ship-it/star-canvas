@@ -20,7 +20,7 @@ interface ImageData {
   average_rating: number;
   total_ratings: number;
   user_id: string;
-  profiles: UserProfile;
+  profile?: UserProfile;
 }
 
 export default function Index() {
@@ -77,17 +77,55 @@ export default function Index() {
 
   const fetchImages = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    
+    // Fetch images first
+    const { data: imagesData, error: imagesError } = await supabase
       .from("images")
-      .select(`*, profiles!images_user_id_fkey(id, username, avatar_url, badge_rank)`)
+      .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
 
-    if (error) {
+    if (imagesError) {
       toast({ title: "Error", description: "Failed to load images", variant: "destructive" });
-    } else {
-      setImages(data || []);
+      setLoading(false);
+      return;
     }
+
+    if (!imagesData || imagesData.length === 0) {
+      setImages([]);
+      setLoading(false);
+      return;
+    }
+
+    // Get unique user IDs
+    const userIds = [...new Set(imagesData.map(img => img.user_id))];
+
+    // Fetch profiles for those users
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("id, username, avatar_url, badge_rank")
+      .in("id", userIds);
+
+    // Create a map of profiles by user ID
+    const profilesMap: Record<string, UserProfile> = {};
+    if (profilesData) {
+      profilesData.forEach(p => {
+        profilesMap[p.id] = p;
+      });
+    }
+
+    // Combine images with profiles
+    const imagesWithProfiles: ImageData[] = imagesData.map(img => ({
+      id: img.id,
+      image_url: img.image_url,
+      caption: img.caption,
+      average_rating: Number(img.average_rating) || 0,
+      total_ratings: img.total_ratings || 0,
+      user_id: img.user_id,
+      profile: profilesMap[img.user_id],
+    }));
+
+    setImages(imagesWithProfiles);
     setLoading(false);
   };
 
@@ -155,13 +193,13 @@ export default function Index() {
                 id={image.id}
                 imageUrl={image.image_url}
                 caption={image.caption}
-                averageRating={Number(image.average_rating) || 0}
-                totalRatings={image.total_ratings || 0}
+                averageRating={image.average_rating}
+                totalRatings={image.total_ratings}
                 user={{
-                  id: image.profiles.id,
-                  username: image.profiles.username,
-                  avatarUrl: image.profiles.avatar_url,
-                  badgeRank: image.profiles.badge_rank,
+                  id: image.user_id,
+                  username: image.profile?.username || "Unknown",
+                  avatarUrl: image.profile?.avatar_url,
+                  badgeRank: image.profile?.badge_rank,
                 }}
                 userRating={userRatings[image.id]}
                 canRate={!!user && image.user_id !== user.id}
