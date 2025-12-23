@@ -75,6 +75,9 @@ export type Database = {
       }
       images: {
         Row: {
+          ai_confidence: number | null
+          ai_detected: boolean | null
+          ai_detection_reason: string | null
           average_rating: number | null
           caption: string | null
           created_at: string | null
@@ -89,6 +92,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_confidence?: number | null
+          ai_detected?: boolean | null
+          ai_detection_reason?: string | null
           average_rating?: number | null
           caption?: string | null
           created_at?: string | null
@@ -103,6 +109,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_confidence?: number | null
+          ai_detected?: boolean | null
+          ai_detection_reason?: string | null
           average_rating?: number | null
           caption?: string | null
           created_at?: string | null

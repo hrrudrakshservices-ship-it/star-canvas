@@ -168,6 +168,9 @@ export default function UploadPage() {
         title: title.trim(),
         description: description.trim() || null,
         caption: caption.trim() || null,
+        ai_detected: aiDetection?.isAI ?? null,
+        ai_confidence: aiDetection?.confidence ?? null,
+        ai_detection_reason: aiDetection?.reason ?? null,
       });
 
       if (insertError) throw insertError;

@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Shield, Users, Image, AlertTriangle, Trash2, Eye, Flag, Check } from "lucide-react";
+import { Loader2, Shield, Users, Image, AlertTriangle, Trash2, Eye, Flag, Check, Bot, ShieldAlert, ShieldCheck } from "lucide-react";
 import { StarRating } from "@/components/StarRating";
 
 interface Profile {
@@ -30,6 +30,9 @@ interface ImageData {
   user_id: string;
   created_at: string;
   average_rating: number;
+  ai_detected?: boolean | null;
+  ai_confidence?: number | null;
+  ai_detection_reason?: string | null;
   profile?: Profile;
 }
 
@@ -64,6 +67,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<Profile[]>([]);
   const [images, setImages] = useState<ImageData[]>([]);
+  const [aiImages, setAiImages] = useState<ImageData[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeTab, setActiveTab] = useState("users");
@@ -154,6 +158,33 @@ export default function AdminPage() {
         ...img,
         profile: profilesMap[img.user_id],
       })));
+    }
+
+    // Fetch AI-detected images
+    const { data: aiImagesData } = await supabase
+      .from("images")
+      .select("*")
+      .eq("ai_detected", true)
+      .order("ai_confidence", { ascending: false });
+
+    if (aiImagesData) {
+      const userIds = [...new Set(aiImagesData.map(img => img.user_id))];
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", userIds.length > 0 ? userIds : ['placeholder']);
+
+      const profilesMap: Record<string, Profile> = {};
+      if (profilesData) {
+        profilesData.forEach(p => profilesMap[p.id] = p);
+      }
+
+      setAiImages(aiImagesData.map(img => ({
+        ...img,
+        profile: profilesMap[img.user_id],
+      })));
+    } else {
+      setAiImages([]);
     }
 
     // Fetch reports
@@ -298,6 +329,10 @@ export default function AdminPage() {
             <TabsTrigger value="flagged" className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
               Flagged ({images.length})
+            </TabsTrigger>
+            <TabsTrigger value="ai-detected" className="flex items-center gap-2">
+              <Bot className="w-4 h-4" />
+              AI Detected ({aiImages.length})
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
@@ -458,6 +493,75 @@ export default function AdminPage() {
                         >
                           <Check className="w-4 h-4 mr-1" />
                           Approve
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleDeleteImage(image.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="ai-detected">
+            {aiImages.length === 0 ? (
+              <div className="text-center py-12 glass-card rounded-xl">
+                <ShieldCheck className="w-12 h-12 mx-auto text-green-500 mb-4" />
+                <p className="text-muted-foreground">No AI-detected images</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {aiImages.map((image) => (
+                  <div key={image.id} className="glass-card rounded-xl overflow-hidden">
+                    <div className="relative">
+                      <img
+                        src={image.image_url}
+                        alt="AI Detected"
+                        className="w-full h-48 object-cover"
+                      />
+                      <div className="absolute top-2 right-2">
+                        <Badge variant="destructive" className="flex items-center gap-1">
+                          <Bot className="w-3 h-3" />
+                          {image.ai_confidence}% AI
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-6 h-6">
+                          <AvatarImage src={image.profile?.avatar_url} />
+                          <AvatarFallback>{image.profile?.username?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{image.profile?.username}</span>
+                        <span className="text-xs text-muted-foreground ml-auto">
+                          {new Date(image.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      
+                      {image.ai_detection_reason && (
+                        <div className="flex items-start gap-2 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+                          <ShieldAlert className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-muted-foreground">{image.ai_detection_reason}</p>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => navigate(`/image/${image.id}`)}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
                         </Button>
                         <Button
                           variant="destructive"
