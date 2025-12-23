@@ -7,7 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Upload as UploadIcon, X, Loader2, Image as ImageIcon } from "lucide-react";
+import { Upload as UploadIcon, X, Loader2, Image as ImageIcon, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface AIDetectionResult {
+  isAI: boolean;
+  confidence: number;
+  reason: string;
+}
 
 export default function UploadPage() {
   const [user, setUser] = useState<any>(null);
@@ -18,6 +25,8 @@ export default function UploadPage() {
   const [description, setDescription] = useState("");
   const [caption, setCaption] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [detecting, setDetecting] = useState(false);
+  const [aiDetection, setAiDetection] = useState<AIDetectionResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -55,7 +64,52 @@ export default function UploadPage() {
     if (data) setProfile(data);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const detectAIImage = async (imageFile: File) => {
+    setDetecting(true);
+    setAiDetection(null);
+
+    try {
+      // Convert file to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(imageFile);
+      });
+
+      const { data, error } = await supabase.functions.invoke("detect-ai-image", {
+        body: { imageBase64: base64 },
+      });
+
+      if (error) throw error;
+
+      setAiDetection(data);
+
+      if (data.isAI && data.confidence > 70) {
+        toast({
+          title: "AI-Generated Image Detected",
+          description: data.reason,
+          variant: "destructive",
+        });
+      } else if (!data.isAI && data.confidence > 70) {
+        toast({
+          title: "Real Image Verified",
+          description: "This appears to be a genuine photograph.",
+        });
+      }
+    } catch (error: any) {
+      console.error("AI detection error:", error);
+      toast({
+        title: "Detection Error",
+        description: "Could not analyze image. You can still upload.",
+        variant: "destructive",
+      });
+    } finally {
+      setDetecting(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
@@ -71,6 +125,9 @@ export default function UploadPage() {
 
     setFile(selectedFile);
     setPreview(URL.createObjectURL(selectedFile));
+    
+    // Automatically run AI detection
+    await detectAIImage(selectedFile);
   };
 
   const handleUpload = async () => {
@@ -79,6 +136,14 @@ export default function UploadPage() {
     if (!title.trim()) {
       toast({ title: "Title required", description: "Please add a title for your photo", variant: "destructive" });
       return;
+    }
+
+    // Warn if image is detected as AI-generated
+    if (aiDetection?.isAI && aiDetection.confidence > 70) {
+      toast({
+        title: "Warning",
+        description: "This image appears to be AI-generated. Uploading anyway...",
+      });
     }
 
     setUploading(true);
@@ -119,7 +184,57 @@ export default function UploadPage() {
   const clearFile = () => {
     setFile(null);
     setPreview(null);
+    setAiDetection(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const getDetectionBadge = () => {
+    if (detecting) {
+      return (
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg">
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Analyzing image...</span>
+        </div>
+      );
+    }
+
+    if (!aiDetection) return null;
+
+    const { isAI, confidence, reason } = aiDetection;
+
+    if (isAI && confidence > 70) {
+      return (
+        <div className="flex items-start gap-2 px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+          <ShieldAlert className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-destructive">AI-Generated ({confidence}% confidence)</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{reason}</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (!isAI && confidence > 70) {
+      return (
+        <div className="flex items-start gap-2 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-lg">
+          <ShieldCheck className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-green-500">Real Photo ({confidence}% confidence)</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{reason}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-start gap-2 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+        <Shield className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-medium text-yellow-500">Uncertain ({confidence}% confidence)</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{reason}</p>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -169,6 +284,17 @@ export default function UploadPage() {
             />
           </div>
 
+          {/* AI Detection Badge */}
+          {(detecting || aiDetection) && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                AI Detection
+              </Label>
+              {getDetectionBadge()}
+            </div>
+          )}
+
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
@@ -212,14 +338,27 @@ export default function UploadPage() {
           {/* Upload button */}
           <Button
             onClick={handleUpload}
-            disabled={!file || !title.trim() || uploading}
-            className="w-full"
+            disabled={!file || !title.trim() || uploading || detecting}
+            className={cn(
+              "w-full",
+              aiDetection?.isAI && aiDetection.confidence > 70 && "bg-destructive hover:bg-destructive/90"
+            )}
             size="lg"
           >
             {uploading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Uploading...
+              </>
+            ) : detecting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Analyzing...
+              </>
+            ) : aiDetection?.isAI && aiDetection.confidence > 70 ? (
+              <>
+                <ShieldAlert className="w-4 h-4" />
+                Upload Anyway (AI Detected)
               </>
             ) : (
               <>
