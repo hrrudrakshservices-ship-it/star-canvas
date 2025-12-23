@@ -3,20 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { ImageCard } from "@/components/ImageCard";
+import { LocationFilter, LocationLevel } from "@/components/LocationFilter";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, TrendingUp } from "lucide-react";
 
 interface UserProfile {
   id: string;
   username: string;
   avatar_url?: string;
   badge_rank?: number;
+  continent?: string;
+  country?: string;
+  state?: string;
+  district?: string;
+  city?: string;
 }
 
 interface ImageData {
   id: string;
   image_url: string;
+  title?: string;
   caption?: string;
+  description?: string;
   average_rating: number;
   total_ratings: number;
   user_id: string;
@@ -30,6 +38,7 @@ export default function Index() {
   const [userRatings, setUserRatings] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [locationFilter, setLocationFilter] = useState<LocationLevel>("continent");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -58,7 +67,7 @@ export default function Index() {
 
   useEffect(() => {
     fetchImages();
-  }, []);
+  }, [locationFilter, profile]);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -84,12 +93,45 @@ export default function Index() {
   const fetchImages = async () => {
     setLoading(true);
     
-    // Fetch images first
-    const { data: imagesData, error: imagesError } = await supabase
+    // First get user IDs that match the location filter
+    let profileQuery = supabase.from("profiles").select("id");
+    
+    if (profile) {
+      switch (locationFilter) {
+        case "continent":
+          if (profile.continent) profileQuery = profileQuery.eq("continent", profile.continent);
+          break;
+        case "country":
+          if (profile.country) profileQuery = profileQuery.eq("country", profile.country);
+          break;
+        case "state":
+          if (profile.state) profileQuery = profileQuery.eq("state", profile.state);
+          break;
+        case "district":
+          if (profile.district) profileQuery = profileQuery.eq("district", profile.district);
+          break;
+        case "city":
+          if (profile.city) profileQuery = profileQuery.eq("city", profile.city);
+          break;
+      }
+    }
+
+    const { data: matchingProfiles } = await profileQuery;
+    const matchingUserIds = matchingProfiles?.map(p => p.id) || [];
+
+    // Fetch top-rated images
+    let imagesQuery = supabase
       .from("images")
       .select("*")
-      .order("created_at", { ascending: false })
+      .order("average_rating", { ascending: false })
+      .order("total_ratings", { ascending: false })
       .limit(50);
+
+    if (matchingUserIds.length > 0 && profile) {
+      imagesQuery = imagesQuery.in("user_id", matchingUserIds);
+    }
+
+    const { data: imagesData, error: imagesError } = await imagesQuery;
 
     if (imagesError) {
       toast({ title: "Error", description: "Failed to load images", variant: "destructive" });
@@ -109,7 +151,7 @@ export default function Index() {
     // Fetch profiles for those users
     const { data: profilesData } = await supabase
       .from("profiles")
-      .select("id, username, avatar_url, badge_rank")
+      .select("id, username, avatar_url, badge_rank, continent, country, state, district, city")
       .in("id", userIds);
 
     // Create a map of profiles by user ID
@@ -124,7 +166,9 @@ export default function Index() {
     const imagesWithProfiles: ImageData[] = imagesData.map(img => ({
       id: img.id,
       image_url: img.image_url,
+      title: img.title,
       caption: img.caption,
+      description: img.description,
       average_rating: Number(img.average_rating) || 0,
       total_ratings: img.total_ratings || 0,
       user_id: img.user_id,
@@ -176,18 +220,49 @@ export default function Index() {
       ? { id: user.id, username: user.user_metadata?.username || user.email?.split('@')[0] || 'User', isAdmin }
       : null;
 
+  const getFilterTitle = () => {
+    if (!profile) return "Top Rated Photos";
+    switch (locationFilter) {
+      case "continent": return `Top in ${profile.continent || "Your Continent"}`;
+      case "country": return `Top in ${profile.country || "Your Country"}`;
+      case "state": return `Top in ${profile.state || "Your State"}`;
+      case "district": return `Top in ${profile.district || "Your District"}`;
+      case "city": return `Top in ${profile.city || "Your City"}`;
+      default: return "Top Rated Photos";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar user={navbarUser} />
 
       <main className="container mx-auto px-4 pt-24 pb-12">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground mb-4 animate-fade-in">
             Discover & Rate <span className="text-gold">Amazing</span> Photography
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto animate-slide-up">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto animate-slide-up mb-6">
             Share your best shots, get rated by the community, and climb the leaderboard.
           </p>
+
+          {/* Location Filter */}
+          <LocationFilter
+            activeFilter={locationFilter}
+            onFilterChange={setLocationFilter}
+            userLocation={profile ? {
+              continent: profile.continent,
+              country: profile.country,
+              state: profile.state,
+              district: profile.district,
+              city: profile.city,
+            } : undefined}
+          />
+        </div>
+
+        {/* Section Title */}
+        <div className="flex items-center gap-2 mb-6">
+          <TrendingUp className="w-5 h-5 text-gold" />
+          <h2 className="text-xl font-semibold text-foreground">{getFilterTitle()}</h2>
         </div>
 
         {loading ? (
@@ -195,8 +270,8 @@ export default function Index() {
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
         ) : images.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-muted-foreground mb-4">No images yet. Be the first to upload!</p>
+          <div className="text-center py-20 glass-card rounded-xl">
+            <p className="text-muted-foreground mb-4">No photos found in this area. Be the first to upload!</p>
           </div>
         ) : (
           <div className="masonry-grid">
@@ -205,7 +280,7 @@ export default function Index() {
                 key={image.id}
                 id={image.id}
                 imageUrl={image.image_url}
-                caption={image.caption}
+                caption={image.title || image.caption}
                 averageRating={image.average_rating}
                 totalRatings={image.total_ratings}
                 user={{

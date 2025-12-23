@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, Copyright, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,14 +23,10 @@ interface ReportDialogProps {
 }
 
 const REPORT_REASONS = [
-  { value: "nudity", label: "Nudity or Sexual Content" },
-  { value: "violence", label: "Violence or Dangerous Content" },
-  { value: "harassment", label: "Harassment or Bullying" },
-  { value: "hate_speech", label: "Hate Speech or Discrimination" },
-  { value: "spam", label: "Spam or Misleading Content" },
-  { value: "copyright", label: "Copyright Infringement" },
-  { value: "fake", label: "Fake or Manipulated Content" },
-  { value: "other", label: "Other" },
+  { value: "copyright", label: "Copyright Infringement", icon: Copyright, description: "This image violates copyright or intellectual property" },
+  { value: "nudity", label: "Nudity or Sexual Content", icon: EyeOff, description: "Contains inappropriate adult content" },
+  { value: "spam", label: "Spam or Misleading Content", description: "Fake, misleading, or promotional content" },
+  { value: "other", label: "Other Issue", description: "Any other violation of community guidelines" },
 ];
 
 export const ReportDialog = ({
@@ -54,12 +50,16 @@ export const ReportDialog = ({
     setSubmitting(true);
 
     try {
+      // Map reason to report_type enum
+      const reportType = reason as "copyright" | "nudity" | "spam" | "other";
+
       // Create the report
       const { error: reportError } = await supabase.from("reports").insert({
         image_id: imageId,
         reporter_id: currentUserId,
         reported_user_id: imageOwnerId,
         reason,
+        report_type: reportType,
         description: description.trim() || null,
       });
 
@@ -108,13 +108,23 @@ export const ReportDialog = ({
         <div className="space-y-6 py-4">
           <div className="space-y-3">
             <Label>Why are you reporting this image?</Label>
-            <RadioGroup value={reason} onValueChange={setReason}>
+            <RadioGroup value={reason} onValueChange={setReason} className="space-y-3">
               {REPORT_REASONS.map((r) => (
-                <div key={r.value} className="flex items-center space-x-3">
-                  <RadioGroupItem value={r.value} id={r.value} />
-                  <Label htmlFor={r.value} className="font-normal cursor-pointer">
-                    {r.label}
-                  </Label>
+                <div 
+                  key={r.value} 
+                  className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                    reason === r.value ? "border-gold bg-gold/5" : "border-border hover:border-muted-foreground"
+                  }`}
+                  onClick={() => setReason(r.value)}
+                >
+                  <RadioGroupItem value={r.value} id={r.value} className="mt-0.5" />
+                  <div className="flex-1">
+                    <Label htmlFor={r.value} className="font-medium cursor-pointer flex items-center gap-2">
+                      {r.icon && <r.icon className="w-4 h-4 text-muted-foreground" />}
+                      {r.label}
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">{r.description}</p>
+                  </div>
                 </div>
               ))}
             </RadioGroup>

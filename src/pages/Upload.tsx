@@ -14,6 +14,8 @@ export default function UploadPage() {
   const [profile, setProfile] = useState<any>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [caption, setCaption] = useState("");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,6 +76,11 @@ export default function UploadPage() {
   const handleUpload = async () => {
     if (!file || !user) return;
 
+    if (!title.trim()) {
+      toast({ title: "Title required", description: "Please add a title for your photo", variant: "destructive" });
+      return;
+    }
+
     setUploading(true);
 
     try {
@@ -93,12 +100,14 @@ export default function UploadPage() {
       const { error: insertError } = await supabase.from("images").insert({
         user_id: user.id,
         image_url: publicUrl,
+        title: title.trim(),
+        description: description.trim() || null,
         caption: caption.trim() || null,
       });
 
       if (insertError) throw insertError;
 
-      toast({ title: "Success!", description: "Your image has been uploaded" });
+      toast({ title: "Success!", description: "Your photo has been uploaded" });
       navigate("/");
     } catch (error: any) {
       toast({ title: "Upload failed", description: error.message, variant: "destructive" });
@@ -160,24 +169,50 @@ export default function UploadPage() {
             />
           </div>
 
+          {/* Title */}
+          <div className="space-y-2">
+            <Label htmlFor="title">Title *</Label>
+            <Input
+              id="title"
+              placeholder="Give your photo a title..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={100}
+            />
+            <p className="text-xs text-muted-foreground text-right">{title.length}/100</p>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label htmlFor="description">Description (optional)</Label>
+            <Textarea
+              id="description"
+              placeholder="Tell the story behind this photo..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={1000}
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground text-right">{description.length}/1000</p>
+          </div>
+
           {/* Caption */}
           <div className="space-y-2">
-            <Label htmlFor="caption">Caption (optional)</Label>
-            <Textarea
+            <Label htmlFor="caption">Short Caption (optional)</Label>
+            <Input
               id="caption"
-              placeholder="Add a caption to your image..."
+              placeholder="A short caption for quick viewing..."
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              maxLength={500}
-              rows={3}
+              maxLength={150}
             />
-            <p className="text-xs text-muted-foreground text-right">{caption.length}/500</p>
+            <p className="text-xs text-muted-foreground text-right">{caption.length}/150</p>
           </div>
 
           {/* Upload button */}
           <Button
             onClick={handleUpload}
-            disabled={!file || uploading}
+            disabled={!file || !title.trim() || uploading}
             className="w-full"
             size="lg"
           >
@@ -189,7 +224,7 @@ export default function UploadPage() {
             ) : (
               <>
                 <UploadIcon className="w-4 h-4" />
-                Upload Image
+                Upload Photo
               </>
             )}
           </Button>

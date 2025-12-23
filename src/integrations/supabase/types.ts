@@ -78,10 +78,12 @@ export type Database = {
           average_rating: number | null
           caption: string | null
           created_at: string | null
+          description: string | null
           flag_reason: string | null
           id: string
           image_url: string
           is_flagged: boolean | null
+          title: string | null
           total_ratings: number | null
           updated_at: string | null
           user_id: string
@@ -90,10 +92,12 @@ export type Database = {
           average_rating?: number | null
           caption?: string | null
           created_at?: string | null
+          description?: string | null
           flag_reason?: string | null
           id?: string
           image_url: string
           is_flagged?: boolean | null
+          title?: string | null
           total_ratings?: number | null
           updated_at?: string | null
           user_id: string
@@ -102,10 +106,12 @@ export type Database = {
           average_rating?: number | null
           caption?: string | null
           created_at?: string | null
+          description?: string | null
           flag_reason?: string | null
           id?: string
           image_url?: string
           is_flagged?: boolean | null
+          title?: string | null
           total_ratings?: number | null
           updated_at?: string | null
           user_id?: string
@@ -114,13 +120,16 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
           avatar_url: string | null
           average_rating: number | null
           badge_rank: number | null
           city: string | null
+          continent: string | null
           country: string | null
           country_code: string | null
           created_at: string | null
+          district: string | null
           email: string
           followers_count: number | null
           following_count: number | null
@@ -134,13 +143,16 @@ export type Database = {
           username: string
         }
         Insert: {
+          age?: number | null
           avatar_url?: string | null
           average_rating?: number | null
           badge_rank?: number | null
           city?: string | null
+          continent?: string | null
           country?: string | null
           country_code?: string | null
           created_at?: string | null
+          district?: string | null
           email: string
           followers_count?: number | null
           following_count?: number | null
@@ -154,13 +166,16 @@ export type Database = {
           username: string
         }
         Update: {
+          age?: number | null
           avatar_url?: string | null
           average_rating?: number | null
           badge_rank?: number | null
           city?: string | null
+          continent?: string | null
           country?: string | null
           country_code?: string | null
           created_at?: string | null
+          district?: string | null
           email?: string
           followers_count?: number | null
           following_count?: number | null
@@ -214,6 +229,7 @@ export type Database = {
           id: string
           image_id: string
           reason: string
+          report_type: Database["public"]["Enums"]["report_type"] | null
           reported_user_id: string
           reporter_id: string
           reviewed_at: string | null
@@ -225,6 +241,7 @@ export type Database = {
           id?: string
           image_id: string
           reason: string
+          report_type?: Database["public"]["Enums"]["report_type"] | null
           reported_user_id: string
           reporter_id: string
           reviewed_at?: string | null
@@ -236,6 +253,7 @@ export type Database = {
           id?: string
           image_id?: string
           reason?: string
+          report_type?: Database["public"]["Enums"]["report_type"] | null
           reported_user_id?: string
           reporter_id?: string
           reviewed_at?: string | null
@@ -244,6 +262,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "reports_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "images"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      streaks: {
+        Row: {
+          created_at: string | null
+          current_streak: number | null
+          id: string
+          image_id: string
+          last_in_top_at: string | null
+          location_value: string
+          longest_streak: number | null
+          streak_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          image_id: string
+          last_in_top_at?: string | null
+          location_value: string
+          longest_streak?: number | null
+          streak_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          image_id?: string
+          last_in_top_at?: string | null
+          location_value?: string
+          longest_streak?: number | null
+          streak_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "streaks_image_id_fkey"
             columns: ["image_id"]
             isOneToOne: false
             referencedRelation: "images"
@@ -284,6 +346,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      report_type: "copyright" | "nudity" | "spam" | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -412,6 +475,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      report_type: ["copyright", "nudity", "spam", "other"],
     },
   },
 } as const
