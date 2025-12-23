@@ -204,6 +204,50 @@ export type Database = {
           },
         ]
       }
+      reports: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_id: string
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          reviewed_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_id: string
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          reviewed_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_id?: string
+          reason?: string
+          reported_user_id?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "images"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string

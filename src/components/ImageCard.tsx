@@ -3,8 +3,17 @@ import { Link } from "react-router-dom";
 import { StarRating } from "./StarRating";
 import { RatingInput } from "./RatingInput";
 import { BadgeRank } from "./BadgeRank";
+import { ReportDialog } from "./ReportDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
+import { Flag, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 interface ImageCardProps {
   id: string;
@@ -20,6 +29,7 @@ interface ImageCardProps {
   };
   userRating?: number;
   canRate?: boolean;
+  currentUserId?: string;
   onRate?: (rating: number) => void;
 }
 
@@ -32,10 +42,14 @@ export const ImageCard = ({
   user,
   userRating,
   canRate = false,
+  currentUserId,
   onRate,
 }: ImageCardProps) => {
   const [showRating, setShowRating] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+
+  const canReport = currentUserId && currentUserId !== user.id;
 
   return (
     <div className="masonry-item group">
@@ -69,6 +83,31 @@ export const ImageCard = ({
               ({totalRatings})
             </span>
           </div>
+
+          {/* More options menu */}
+          {canReport && (
+            <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowReportDialog(true);
+                    }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Flag className="w-4 h-4 mr-2" />
+                    Report Image
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
 
         {/* Info section */}
@@ -124,6 +163,17 @@ export const ImageCard = ({
           )}
         </div>
       </div>
+
+      {/* Report Dialog */}
+      {currentUserId && (
+        <ReportDialog
+          isOpen={showReportDialog}
+          onClose={() => setShowReportDialog(false)}
+          imageId={id}
+          imageOwnerId={user.id}
+          currentUserId={currentUserId}
+        />
+      )}
     </div>
   );
 };
