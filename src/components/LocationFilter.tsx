@@ -43,7 +43,6 @@ export const LocationFilter = ({
     <div className={cn("flex flex-wrap justify-center gap-2", className)}>
       {FILTER_OPTIONS.map((option) => {
         const Icon = option.icon;
-        const isDisabled = !userLocation?.[option.value];
         
         return (
           <Button
@@ -51,11 +50,7 @@ export const LocationFilter = ({
             variant={activeFilter === option.value ? "default" : "outline"}
             size="sm"
             onClick={() => onFilterChange(option.value)}
-            disabled={isDisabled}
-            className={cn(
-              "transition-all",
-              isDisabled && "opacity-50 cursor-not-allowed"
-            )}
+            className="transition-all"
           >
             <Icon className="w-4 h-4 mr-1" />
             {getFilterLabel(option)}
