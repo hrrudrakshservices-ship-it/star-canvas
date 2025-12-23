@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, User, Trophy, LogOut, Upload, Shield } from "lucide-react";
+import { Menu, X, User, Trophy, LogOut, Upload, Shield, Settings } from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
@@ -102,6 +102,10 @@ export const Navbar = ({ user }: NavbarProps) => {
                       <User className="w-4 h-4 mr-2" />
                       Profile
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/profile/edit")}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </DropdownMenuItem>
                     {user.isAdmin && (
                       <DropdownMenuItem onClick={() => navigate("/admin")}>
                         <Shield className="w-4 h-4 mr-2" />
@@ -172,6 +176,14 @@ export const Navbar = ({ user }: NavbarProps) => {
                   >
                     <User className="w-4 h-4" />
                     Profile
+                  </Link>
+                  <Link
+                    to="/profile/edit"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-lg"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Settings className="w-4 h-4" />
+                    Edit Profile
                   </Link>
                   {user.isAdmin && (
                     <Link
