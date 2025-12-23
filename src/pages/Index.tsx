@@ -47,13 +47,12 @@ export default function Index() {
 
   useEffect(() => {
     if (user) {
-      // Delay profile fetch slightly to ensure profile is created after signup
-      const timer = setTimeout(() => {
-        fetchProfile();
-        fetchUserRatings();
-        checkAdminRole();
-      }, 100);
-      return () => clearTimeout(timer);
+      fetchProfile();
+      fetchUserRatings();
+      checkAdminRole();
+    } else {
+      setProfile(null);
+      setIsAdmin(false);
     }
   }, [user]);
 
@@ -170,9 +169,16 @@ export default function Index() {
     }
   };
 
+  // Create navbar user from profile or fallback to auth user
+  const navbarUser = profile 
+    ? { id: profile.id, username: profile.username, avatarUrl: profile.avatar_url, isAdmin }
+    : user 
+      ? { id: user.id, username: user.user_metadata?.username || user.email?.split('@')[0] || 'User', isAdmin }
+      : null;
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar user={profile ? { id: profile.id, username: profile.username, avatarUrl: profile.avatar_url, isAdmin } : null} />
+      <Navbar user={navbarUser} />
 
       <main className="container mx-auto px-4 pt-24 pb-12">
         <div className="text-center mb-12">
