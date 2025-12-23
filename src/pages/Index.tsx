@@ -47,12 +47,19 @@ export default function Index() {
 
   useEffect(() => {
     if (user) {
-      fetchProfile();
-      fetchUserRatings();
-      checkAdminRole();
+      // Delay profile fetch slightly to ensure profile is created after signup
+      const timer = setTimeout(() => {
+        fetchProfile();
+        fetchUserRatings();
+        checkAdminRole();
+      }, 100);
+      return () => clearTimeout(timer);
     }
-    fetchImages();
   }, [user]);
+
+  useEffect(() => {
+    fetchImages();
+  }, []);
 
   const fetchProfile = async () => {
     if (!user) return;
