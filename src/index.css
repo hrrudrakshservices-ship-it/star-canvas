@@ -6,66 +6,7 @@
 
 @layer base {
   :root {
-    /* Monochromatic black & white palette */
-    --background: 0 0% 3%;
-    --foreground: 0 0% 95%;
-
-    --card: 0 0% 6%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 0 0% 6%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
-
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 95%;
-
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
-
-    --accent: 0 0% 18%;
-    --accent-foreground: 0 0% 95%;
-
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 0 0% 100%;
-
-    --radius: 0.75rem;
-
-    /* Custom tokens */
-    --gold: 45 93% 58%;
-    --gold-dark: 45 93% 45%;
-    --silver: 0 0% 75%;
-    --bronze: 30 60% 50%;
-    
-    --gradient-gold: linear-gradient(135deg, hsl(45, 93%, 58%) 0%, hsl(35, 90%, 45%) 100%);
-    --gradient-silver: linear-gradient(135deg, hsl(0, 0%, 85%) 0%, hsl(0, 0%, 65%) 100%);
-    --gradient-bronze: linear-gradient(135deg, hsl(30, 60%, 55%) 0%, hsl(25, 55%, 40%) 100%);
-    
-    --shadow-glow: 0 0 40px hsl(0 0% 100% / 0.1);
-    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.4);
-    --shadow-elevated: 0 8px 32px hsl(0 0% 0% / 0.6);
-
-    /* Typography */
-    --font-serif: 'Playfair Display', Georgia, serif;
-    --font-sans: 'Inter', system-ui, sans-serif;
-
-    --sidebar-background: 0 0% 6%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 0 0% 100%;
-  }
-
-  .light {
+    /* Light theme - white background with black text */
     --background: 0 0% 98%;
     --foreground: 0 0% 5%;
 
@@ -87,9 +28,68 @@
     --accent: 0 0% 85%;
     --accent-foreground: 0 0% 10%;
 
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
     --border: 0 0% 85%;
     --input: 0 0% 85%;
     --ring: 0 0% 5%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --gold: 45 93% 47%;
+    --gold-dark: 45 93% 35%;
+    --silver: 0 0% 55%;
+    --bronze: 30 60% 40%;
+    
+    --gradient-gold: linear-gradient(135deg, hsl(45, 93%, 47%) 0%, hsl(35, 90%, 35%) 100%);
+    --gradient-silver: linear-gradient(135deg, hsl(0, 0%, 65%) 0%, hsl(0, 0%, 45%) 100%);
+    --gradient-bronze: linear-gradient(135deg, hsl(30, 60%, 45%) 0%, hsl(25, 55%, 30%) 100%);
+    
+    --shadow-glow: 0 0 40px hsl(0 0% 0% / 0.05);
+    --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.08);
+    --shadow-elevated: 0 8px 32px hsl(0 0% 0% / 0.12);
+
+    /* Typography */
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 5%;
+    --sidebar-primary: 0 0% 5%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 92%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 85%;
+    --sidebar-ring: 0 0% 5%;
+  }
+
+  .dark {
+    --background: 0 0% 3%;
+    --foreground: 0 0% 95%;
+
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 0 0% 18%;
+    --accent-foreground: 0 0% 95%;
+
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 0% 100%;
   }
 }
 
