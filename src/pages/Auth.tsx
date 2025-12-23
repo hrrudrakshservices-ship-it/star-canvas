@@ -42,11 +42,22 @@ export default function Auth() {
       .catch(() => {});
   }, []);
 
-  // Check if already logged in
+  // Listen for auth state changes and redirect when logged in
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        // Use setTimeout to defer navigation after state is fully updated
+        setTimeout(() => {
+          navigate("/");
+        }, 0);
+      }
+    });
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate("/");
     });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {

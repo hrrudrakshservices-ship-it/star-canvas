@@ -9,6 +9,7 @@ import Upload from "./pages/Upload";
 import Profile from "./pages/Profile";
 import Leaderboard from "./pages/Leaderboard";
 import Admin from "./pages/Admin";
+import ImageView from "./pages/ImageView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/image/:imageId" element={<ImageView />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

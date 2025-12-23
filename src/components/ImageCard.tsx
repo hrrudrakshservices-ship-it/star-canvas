@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { StarRating } from "./StarRating";
 import { BadgeRank } from "./BadgeRank";
-import { ReportDialog } from "./ReportDialog";
-import { ImagePreviewDialog } from "./ImagePreviewDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { cn } from "@/lib/utils";
 
@@ -33,20 +31,9 @@ export const ImageCard = ({
   totalRatings,
   user,
   userRating,
-  canRate = false,
-  currentUserId,
-  onRate,
 }: ImageCardProps) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [showReportDialog, setShowReportDialog] = useState(false);
-
-  const canReport = currentUserId && currentUserId !== user.id;
-
-  const handleReport = () => {
-    setShowPreview(false);
-    setShowReportDialog(true);
-  };
+  const navigate = useNavigate();
 
   return (
     <div className="masonry-item group">
@@ -54,7 +41,7 @@ export const ImageCard = ({
         {/* Image */}
         <div 
           className="relative cursor-pointer"
-          onClick={() => setShowPreview(true)}
+          onClick={() => navigate(`/image/${id}`)}
         >
           <div className={cn(
             "bg-muted animate-pulse aspect-[4/3]",
@@ -119,33 +106,6 @@ export const ImageCard = ({
           )}
         </div>
       </div>
-
-      {/* Image Preview Dialog */}
-      <ImagePreviewDialog
-        isOpen={showPreview}
-        onClose={() => setShowPreview(false)}
-        imageUrl={imageUrl}
-        caption={caption}
-        averageRating={averageRating}
-        totalRatings={totalRatings}
-        user={user}
-        userRating={userRating}
-        canRate={canRate}
-        canReport={!!canReport}
-        onRate={onRate}
-        onReport={handleReport}
-      />
-
-      {/* Report Dialog */}
-      {currentUserId && (
-        <ReportDialog
-          isOpen={showReportDialog}
-          onClose={() => setShowReportDialog(false)}
-          imageId={id}
-          imageOwnerId={user.id}
-          currentUserId={currentUserId}
-        />
-      )}
     </div>
   );
 };
