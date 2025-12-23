@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { ProfileCard } from "@/components/ProfileCard";
 import { ImageCard } from "@/components/ImageCard";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, LockKeyhole, Globe } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -21,6 +22,7 @@ interface Profile {
   following_count: number;
   average_rating: number;
   total_ratings_received: number;
+  is_public: boolean;
 }
 
 interface ImageData {
@@ -178,6 +180,23 @@ export default function ProfilePage() {
     }
   };
 
+  const handleMakePublic = async () => {
+    if (!currentUser || !viewedProfile) return;
+    
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_public: true })
+      .eq("id", currentUser.id);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to update account", variant: "destructive" });
+    } else {
+      toast({ title: "Account Updated", description: "Your account is now public. This cannot be undone." });
+      fetchViewedProfile();
+      fetchCurrentProfile();
+    }
+  };
+
   const handleRate = async (imageId: string, rating: number) => {
     if (!currentUser) {
       navigate("/auth");
@@ -206,6 +225,7 @@ export default function ProfilePage() {
   }
 
   const isOwnProfile = currentUser?.id === userId;
+  const canViewContent = viewedProfile?.is_public || isOwnProfile || isFollowing;
 
   return (
     <div className="min-h-screen bg-background">
@@ -214,22 +234,63 @@ export default function ProfilePage() {
       <main className="container mx-auto px-4 pt-24 pb-12">
         <div className="max-w-4xl mx-auto">
           {viewedProfile && (
-            <ProfileCard
-              id={viewedProfile.id}
-              username={viewedProfile.username}
-              avatarUrl={viewedProfile.avatar_url}
-              country={viewedProfile.country}
-              city={viewedProfile.city}
-              badgeRank={viewedProfile.badge_rank}
-              totalImages={viewedProfile.total_images}
-              followersCount={viewedProfile.followers_count}
-              averageRating={Number(viewedProfile.average_rating) || 0}
-              totalRatingsReceived={viewedProfile.total_ratings_received}
-              isFollowing={isFollowing}
-              isOwnProfile={isOwnProfile}
-              onFollow={handleFollow}
-              onUnfollow={handleUnfollow}
-            />
+            <>
+              <ProfileCard
+                id={viewedProfile.id}
+                username={viewedProfile.username}
+                avatarUrl={viewedProfile.avatar_url}
+                country={viewedProfile.country}
+                city={viewedProfile.city}
+                badgeRank={viewedProfile.badge_rank}
+                totalImages={viewedProfile.total_images}
+                followersCount={viewedProfile.followers_count}
+                averageRating={Number(viewedProfile.average_rating) || 0}
+                totalRatingsReceived={viewedProfile.total_ratings_received}
+                isFollowing={isFollowing}
+                isOwnProfile={isOwnProfile}
+                isPublic={viewedProfile.is_public}
+                onFollow={handleFollow}
+                onUnfollow={handleUnfollow}
+              />
+
+              {/* Account Type Banner for Own Profile */}
+              {isOwnProfile && (
+                <div className="mt-4 glass-card rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {viewedProfile.is_public ? (
+                        <>
+                          <Globe className="w-5 h-5 text-gold" />
+                          <div>
+                            <p className="font-medium text-foreground">Public Account</p>
+                            <p className="text-xs text-muted-foreground">Everyone can see your profile and images</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <LockKeyhole className="w-5 h-5 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium text-foreground">Private Account</p>
+                            <p className="text-xs text-muted-foreground">Only followers can see your content</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    
+                    {!viewedProfile.is_public && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleMakePublic}
+                      >
+                        <Globe className="w-4 h-4 mr-1" />
+                        Make Public
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <div className="mt-8">
@@ -237,7 +298,16 @@ export default function ProfilePage() {
               Images ({images.length})
             </h2>
 
-            {images.length === 0 ? (
+            {!canViewContent ? (
+              <div className="text-center py-12 glass-card rounded-xl">
+                <LockKeyhole className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-foreground font-medium mb-2">This account is private</p>
+                <p className="text-sm text-muted-foreground mb-4">Follow this account to see their photos</p>
+                <Button onClick={handleFollow}>
+                  Follow to View
+                </Button>
+              </div>
+            ) : images.length === 0 ? (
               <div className="text-center py-12 glass-card rounded-xl">
                 <p className="text-muted-foreground">No images uploaded yet</p>
               </div>
