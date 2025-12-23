@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Mail, Lock, User, Globe, LockKeyhole } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Globe, LockKeyhole, UserCircle } from "lucide-react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 
 const signUpSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters").max(20),
+  name: z.string().min(2, "Name must be at least 2 characters").max(50),
+  username: z.string().min(3, "Username must be at least 3 characters").max(20).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
@@ -19,6 +20,7 @@ export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -70,9 +72,31 @@ export default function Auth() {
         if (error) throw error;
         navigate("/");
       } else {
-        const validation = signUpSchema.safeParse({ username, email, password });
+        const validation = signUpSchema.safeParse({ name, username, email, password });
         if (!validation.success) {
           throw new Error(validation.error.errors[0].message);
+        }
+
+        // Check if username already exists
+        const { data: existingUsername } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("username", username.toLowerCase())
+          .maybeSingle();
+
+        if (existingUsername) {
+          throw new Error("This username is already taken. Please choose another.");
+        }
+
+        // Check if email already exists
+        const { data: existingEmail } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("email", email.toLowerCase())
+          .maybeSingle();
+
+        if (existingEmail) {
+          throw new Error("An account with this email already exists. Try signing in.");
         }
 
         const { data, error } = await supabase.auth.signUp({
@@ -80,7 +104,7 @@ export default function Auth() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
-            data: { username },
+            data: { username, name },
           },
         });
 
@@ -89,8 +113,9 @@ export default function Auth() {
         if (data.user) {
           const { error: profileError } = await supabase.from("profiles").insert({
             id: data.user.id,
-            username,
-            email,
+            name,
+            username: username.toLowerCase(),
+            email: email.toLowerCase(),
             country: location.country,
             country_code: location.countryCode,
             state: location.state,
@@ -132,21 +157,39 @@ export default function Auth() {
         <div className="glass-card rounded-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="Choose a username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <div className="relative">
+                    <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="Choose a unique username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Letters, numbers, and underscores only</p>
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
