@@ -162,10 +162,17 @@ export default function ImageView() {
   const canRate = currentUser && image && image.user_id !== currentUser.id;
   const canReport = currentUser && image && image.user_id !== currentUser.id;
 
+  // Create navbar user from profile or fallback to auth user
+  const navbarUser = currentProfile 
+    ? { id: currentProfile.id, username: currentProfile.username, avatarUrl: currentProfile.avatar_url, isAdmin }
+    : currentUser 
+      ? { id: currentUser.id, username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'User', isAdmin }
+      : null;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar user={currentProfile ? { id: currentProfile.id, username: currentProfile.username, avatarUrl: currentProfile.avatar_url, isAdmin } : null} />
+        <Navbar user={navbarUser} />
         <div className="flex items-center justify-center pt-24 min-h-screen">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
@@ -176,7 +183,7 @@ export default function ImageView() {
   if (!image || !imageOwner) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar user={currentProfile ? { id: currentProfile.id, username: currentProfile.username, avatarUrl: currentProfile.avatar_url, isAdmin } : null} />
+        <Navbar user={navbarUser} />
         <div className="flex items-center justify-center pt-24 min-h-screen">
           <p className="text-muted-foreground">Image not found</p>
         </div>
@@ -186,7 +193,7 @@ export default function ImageView() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar user={currentProfile ? { id: currentProfile.id, username: currentProfile.username, avatarUrl: currentProfile.avatar_url, isAdmin } : null} />
+      <Navbar user={navbarUser} />
 
       <main className="pt-16">
         {/* Header */}
