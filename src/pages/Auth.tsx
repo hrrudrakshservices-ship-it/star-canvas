@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Mail, Lock, User, Globe, LockKeyhole, UserCircle } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Globe, LockKeyhole, UserCircle, MapPin, Calendar, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +15,12 @@ const signUpSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").max(20).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  age: z.number().min(13, "Must be at least 13 years old").max(120, "Invalid age").optional(),
 });
+
+const CONTINENTS = [
+  "Africa", "Antarctica", "Asia", "Europe", "North America", "Oceania", "South America"
+];
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -22,33 +28,67 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
+  const [age, setAge] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [location, setLocation] = useState<{country?: string; countryCode?: string; state?: string; city?: string}>({});
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [location, setLocation] = useState<{
+    continent?: string;
+    country?: string;
+    countryCode?: string;
+    state?: string;
+    district?: string;
+    city?: string;
+  }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Auto-detect location
   useEffect(() => {
+    setDetectingLocation(true);
     fetch("https://ipapi.co/json/")
       .then((res) => res.json())
       .then((data) => {
+        // Map country to continent
+        const continent = getContinent(data.country_code);
         setLocation({
+          continent,
           country: data.country_name,
           countryCode: data.country_code,
           state: data.region,
+          district: data.region, // Use region as district if not available
           city: data.city,
         });
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setDetectingLocation(false));
   }, []);
+
+  const getContinent = (countryCode: string): string => {
+    const continentMap: Record<string, string> = {
+      // Asia
+      IN: "Asia", PK: "Asia", BD: "Asia", LK: "Asia", NP: "Asia", CN: "Asia", JP: "Asia", KR: "Asia",
+      ID: "Asia", MY: "Asia", TH: "Asia", VN: "Asia", PH: "Asia", SG: "Asia", AE: "Asia", SA: "Asia",
+      // Europe
+      GB: "Europe", DE: "Europe", FR: "Europe", IT: "Europe", ES: "Europe", NL: "Europe", BE: "Europe",
+      CH: "Europe", AT: "Europe", PL: "Europe", SE: "Europe", NO: "Europe", DK: "Europe", FI: "Europe",
+      // North America
+      US: "North America", CA: "North America", MX: "North America",
+      // South America
+      BR: "South America", AR: "South America", CL: "South America", CO: "South America", PE: "South America",
+      // Africa
+      ZA: "Africa", NG: "Africa", EG: "Africa", KE: "Africa", MA: "Africa",
+      // Oceania
+      AU: "Oceania", NZ: "Oceania",
+    };
+    return continentMap[countryCode] || "Asia";
+  };
 
   // Listen for auth state changes and redirect when logged in
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        // Use setTimeout to defer navigation after state is fully updated
         setTimeout(() => {
           navigate("/");
         }, 0);
@@ -72,7 +112,8 @@ export default function Auth() {
         if (error) throw error;
         navigate("/");
       } else {
-        const validation = signUpSchema.safeParse({ name, username, email, password });
+        const ageNum = age ? parseInt(age) : undefined;
+        const validation = signUpSchema.safeParse({ name, username, email, password, age: ageNum });
         if (!validation.success) {
           throw new Error(validation.error.errors[0].message);
         }
@@ -116,9 +157,12 @@ export default function Auth() {
             name,
             username: username.toLowerCase(),
             email: email.toLowerCase(),
+            age: ageNum || null,
+            continent: location.continent,
             country: location.country,
             country_code: location.countryCode,
             state: location.state,
+            district: location.district,
             city: location.city,
             is_public: isPublic,
           });
@@ -155,24 +199,43 @@ export default function Auth() {
         </div>
 
         <div className="glass-card rounded-2xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <div className="relative">
-                    <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="Enter your full name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <div className="relative">
+                      <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="Your name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="age">Age</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="age"
+                        type="number"
+                        placeholder="Your age"
+                        value={age}
+                        onChange={(e) => setAge(e.target.value)}
+                        className="pl-10"
+                        min={13}
+                        max={120}
+                      />
+                    </div>
                   </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
                   <div className="relative">
@@ -187,7 +250,6 @@ export default function Auth() {
                       required
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">Letters, numbers, and underscores only</p>
                 </div>
               </>
             )}
@@ -231,6 +293,73 @@ export default function Auth() {
               </div>
             </div>
 
+            {/* Location fields - only during signup */}
+            {!isLogin && (
+              <div className="space-y-4 p-4 rounded-lg bg-secondary/30">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <MapPin className="w-4 h-4" />
+                  <span>Location (editable)</span>
+                  {detectingLocation && <Loader2 className="w-3 h-3 animate-spin" />}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Continent</Label>
+                    <Select value={location.continent} onValueChange={(v) => setLocation(prev => ({ ...prev, continent: v }))}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONTINENTS.map(c => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Country</Label>
+                    <Input
+                      value={location.country || ""}
+                      onChange={(e) => setLocation(prev => ({ ...prev, country: e.target.value }))}
+                      className="h-9"
+                      placeholder="Country"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">State</Label>
+                    <Input
+                      value={location.state || ""}
+                      onChange={(e) => setLocation(prev => ({ ...prev, state: e.target.value }))}
+                      className="h-9"
+                      placeholder="State"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">District</Label>
+                    <Input
+                      value={location.district || ""}
+                      onChange={(e) => setLocation(prev => ({ ...prev, district: e.target.value }))}
+                      className="h-9"
+                      placeholder="District"
+                    />
+                  </div>
+
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">City</Label>
+                    <Input
+                      value={location.city || ""}
+                      onChange={(e) => setLocation(prev => ({ ...prev, city: e.target.value }))}
+                      className="h-9"
+                      placeholder="City"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Account Type Selection - Only show during signup */}
             {!isLogin && (
               <div className="space-y-3">
@@ -240,53 +369,38 @@ export default function Auth() {
                     type="button"
                     onClick={() => setIsPublic(true)}
                     className={cn(
-                      "p-4 rounded-xl border-2 transition-all text-left",
+                      "p-3 rounded-xl border-2 transition-all text-left",
                       isPublic
                         ? "border-gold bg-gold/10"
                         : "border-border hover:border-muted-foreground"
                     )}
                   >
                     <Globe className={cn(
-                      "w-6 h-6 mb-2",
+                      "w-5 h-5 mb-1",
                       isPublic ? "text-gold" : "text-muted-foreground"
                     )} />
-                    <p className="font-medium text-foreground">Public</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Everyone can see your profile and images
-                    </p>
+                    <p className="font-medium text-foreground text-sm">Public</p>
+                    <p className="text-xs text-muted-foreground">Everyone can see</p>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setIsPublic(false)}
                     className={cn(
-                      "p-4 rounded-xl border-2 transition-all text-left",
+                      "p-3 rounded-xl border-2 transition-all text-left",
                       !isPublic
                         ? "border-gold bg-gold/10"
                         : "border-border hover:border-muted-foreground"
                     )}
                   >
                     <LockKeyhole className={cn(
-                      "w-6 h-6 mb-2",
+                      "w-5 h-5 mb-1",
                       !isPublic ? "text-gold" : "text-muted-foreground"
                     )} />
-                    <p className="font-medium text-foreground">Private</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Only followers can see your content
-                    </p>
+                    <p className="font-medium text-foreground text-sm">Private</p>
+                    <p className="text-xs text-muted-foreground">Followers only</p>
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Note: Private accounts can switch to public later, but public accounts cannot become private.
-                </p>
-              </div>
-            )}
-
-            {!isLogin && location.country && (
-              <div className="p-3 rounded-lg bg-secondary/50 text-sm">
-                <p className="text-muted-foreground">
-                  Location detected: <span className="text-foreground font-medium">{location.city}, {location.state}, {location.country}</span>
-                </p>
               </div>
             )}
 
