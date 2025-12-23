@@ -1,19 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { StarRating } from "./StarRating";
-import { RatingInput } from "./RatingInput";
 import { BadgeRank } from "./BadgeRank";
 import { ReportDialog } from "./ReportDialog";
+import { ImagePreviewDialog } from "./ImagePreviewDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
-import { Flag, MoreVertical } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 
 interface ImageCardProps {
   id: string;
@@ -45,11 +37,16 @@ export const ImageCard = ({
   currentUserId,
   onRate,
 }: ImageCardProps) => {
-  const [showRating, setShowRating] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
 
   const canReport = currentUserId && currentUserId !== user.id;
+
+  const handleReport = () => {
+    setShowPreview(false);
+    setShowReportDialog(true);
+  };
 
   return (
     <div className="masonry-item group">
@@ -57,7 +54,7 @@ export const ImageCard = ({
         {/* Image */}
         <div 
           className="relative cursor-pointer"
-          onClick={() => canRate && setShowRating(!showRating)}
+          onClick={() => setShowPreview(true)}
         >
           <div className={cn(
             "bg-muted animate-pulse aspect-[4/3]",
@@ -83,31 +80,6 @@ export const ImageCard = ({
               ({totalRatings})
             </span>
           </div>
-
-          {/* More options menu */}
-          {canReport && (
-            <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowReportDialog(true);
-                    }}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Flag className="w-4 h-4 mr-2" />
-                    Report Image
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
         </div>
 
         {/* Info section */}
@@ -138,24 +110,8 @@ export const ImageCard = ({
             </p>
           )}
 
-          {/* Rating input */}
-          {showRating && canRate && (
-            <div className="pt-2 border-t border-border animate-fade-in">
-              <p className="text-xs text-muted-foreground mb-2">
-                {userRating ? "Update your rating" : "Rate this image"}
-              </p>
-              <RatingInput
-                initialRating={userRating || 0}
-                onRate={(rating) => {
-                  onRate?.(rating);
-                  setShowRating(false);
-                }}
-              />
-            </div>
-          )}
-
           {/* Show existing user rating */}
-          {userRating && !showRating && (
+          {userRating && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>Your rating:</span>
               <StarRating rating={userRating} size="sm" />
@@ -163,6 +119,22 @@ export const ImageCard = ({
           )}
         </div>
       </div>
+
+      {/* Image Preview Dialog */}
+      <ImagePreviewDialog
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        imageUrl={imageUrl}
+        caption={caption}
+        averageRating={averageRating}
+        totalRatings={totalRatings}
+        user={user}
+        userRating={userRating}
+        canRate={canRate}
+        canReport={!!canReport}
+        onRate={onRate}
+        onReport={handleReport}
+      />
 
       {/* Report Dialog */}
       {currentUserId && (
