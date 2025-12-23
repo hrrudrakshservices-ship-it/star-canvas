@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -187,8 +188,10 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-background">
+      <Navbar user={null} />
+      <div className="flex items-center justify-center p-4 pt-24 min-h-screen">
+        <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-serif font-bold text-foreground mb-2">
             Rate<span className="text-gold">Gallery</span>
@@ -419,6 +422,7 @@ export default function Auth() {
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
