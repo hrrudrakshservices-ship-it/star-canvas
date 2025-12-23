@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Shield, Users, Image, AlertTriangle, Trash2, Eye, Ban, Check } from "lucide-react";
+import { Loader2, Shield, Users, Image, AlertTriangle, Trash2, Eye, Flag, Check } from "lucide-react";
 import { StarRating } from "@/components/StarRating";
 
 interface Profile {
@@ -43,6 +43,20 @@ interface Notification {
   created_at: string;
 }
 
+interface Report {
+  id: string;
+  image_id: string;
+  reporter_id: string;
+  reported_user_id: string;
+  reason: string;
+  description?: string;
+  status: string;
+  created_at: string;
+  image?: ImageData;
+  reporter?: Profile;
+  reported_user?: Profile;
+}
+
 export default function AdminPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
@@ -50,6 +64,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<Profile[]>([]);
   const [images, setImages] = useState<ImageData[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeTab, setActiveTab] = useState("users");
   const navigate = useNavigate();
@@ -141,6 +156,49 @@ export default function AdminPage() {
       })));
     }
 
+    // Fetch reports
+    const { data: reportsData } = await supabase
+      .from("reports")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    if (reportsData && reportsData.length > 0) {
+      const imageIds = [...new Set(reportsData.map(r => r.image_id))];
+      const reporterIds = [...new Set(reportsData.map(r => r.reporter_id))];
+      const reportedUserIds = [...new Set(reportsData.map(r => r.reported_user_id))];
+      const allUserIds = [...new Set([...reporterIds, ...reportedUserIds])];
+
+      const { data: imagesForReports } = await supabase
+        .from("images")
+        .select("*")
+        .in("id", imageIds);
+
+      const { data: profilesForReports } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", allUserIds);
+
+      const imagesMap: Record<string, ImageData> = {};
+      if (imagesForReports) {
+        imagesForReports.forEach(img => imagesMap[img.id] = img);
+      }
+
+      const profilesMap: Record<string, Profile> = {};
+      if (profilesForReports) {
+        profilesForReports.forEach(p => profilesMap[p.id] = p);
+      }
+
+      setReports(reportsData.map(r => ({
+        ...r,
+        image: imagesMap[r.image_id],
+        reporter: profilesMap[r.reporter_id],
+        reported_user: profilesMap[r.reported_user_id],
+      })));
+    } else {
+      setReports([]);
+    }
+
     // Fetch notifications
     const { data: notifData } = await supabase
       .from("admin_notifications")
@@ -173,9 +231,40 @@ export default function AdminPage() {
     }
   };
 
+  const handleResolveReport = async (reportId: string, action: "approve" | "delete", imageId: string) => {
+    if (action === "delete") {
+      await supabase.from("images").delete().eq("id", imageId);
+    }
+
+    await supabase
+      .from("reports")
+      .update({ status: action === "delete" ? "removed" : "dismissed", reviewed_at: new Date().toISOString() })
+      .eq("id", reportId);
+
+    toast({ 
+      title: action === "delete" ? "Image Removed" : "Report Dismissed",
+      description: action === "delete" ? "The reported image has been deleted" : "The report has been dismissed"
+    });
+    fetchData();
+  };
+
   const handleMarkNotificationRead = async (notifId: string) => {
     await supabase.from("admin_notifications").update({ is_read: true }).eq("id", notifId);
     fetchData();
+  };
+
+  const getReasonLabel = (reason: string) => {
+    const labels: Record<string, string> = {
+      nudity: "Nudity or Sexual Content",
+      violence: "Violence or Dangerous",
+      harassment: "Harassment or Bullying",
+      hate_speech: "Hate Speech",
+      spam: "Spam or Misleading",
+      copyright: "Copyright Infringement",
+      fake: "Fake Content",
+      other: "Other",
+    };
+    return labels[reason] || reason;
   };
 
   if (loading) {
@@ -202,13 +291,17 @@ export default function AdminPage() {
               <Users className="w-4 h-4" />
               Users ({users.length})
             </TabsTrigger>
+            <TabsTrigger value="reports" className="flex items-center gap-2">
+              <Flag className="w-4 h-4" />
+              Reports ({reports.length})
+            </TabsTrigger>
             <TabsTrigger value="flagged" className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
               Flagged ({images.length})
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
-              Notifications ({notifications.filter(n => !n.is_read).length})
+              Alerts ({notifications.filter(n => !n.is_read).length})
             </TabsTrigger>
           </TabsList>
 
@@ -263,6 +356,69 @@ export default function AdminPage() {
                 </table>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="reports">
+            {reports.length === 0 ? (
+              <div className="text-center py-12 glass-card rounded-xl">
+                <Check className="w-12 h-12 mx-auto text-green-500 mb-4" />
+                <p className="text-muted-foreground">No pending reports</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {reports.map((report) => (
+                  <div key={report.id} className="glass-card rounded-xl overflow-hidden">
+                    {report.image && (
+                      <img
+                        src={report.image.image_url}
+                        alt="Reported"
+                        className="w-full h-48 object-cover"
+                      />
+                    )}
+                    <div className="p-4 space-y-3">
+                      <Badge variant="destructive">{getReasonLabel(report.reason)}</Badge>
+                      
+                      {report.description && (
+                        <p className="text-sm text-muted-foreground">"{report.description}"</p>
+                      )}
+
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <span>Reported:</span>
+                          <Avatar className="w-5 h-5">
+                            <AvatarImage src={report.reported_user?.avatar_url} />
+                            <AvatarFallback>{report.reported_user?.username?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <span>{report.reported_user?.username}</span>
+                        </div>
+                        <span>{new Date(report.created_at).toLocaleDateString()}</span>
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleResolveReport(report.id, "approve", report.image_id)}
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                          Dismiss
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleResolveReport(report.id, "delete", report.image_id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Remove Image
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="flagged">
@@ -334,8 +490,8 @@ export default function AdminPage() {
                       notif.is_read ? "opacity-60" : ""
                     }`}
                   >
-                    <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${
-                      notif.notification_type === "flagged_image" ? "text-destructive" : "text-gold"
+                    <Flag className={`w-5 h-5 flex-shrink-0 ${
+                      notif.notification_type === "image_report" ? "text-destructive" : "text-gold"
                     }`} />
                     <div className="flex-1">
                       <p className="text-sm">{notif.message}</p>

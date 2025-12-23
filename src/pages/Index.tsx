@@ -203,6 +203,7 @@ export default function Index() {
                 }}
                 userRating={userRatings[image.id]}
                 canRate={!!user && image.user_id !== user.id}
+                currentUserId={user?.id}
                 onRate={(rating) => handleRate(image.id, rating)}
               />
             ))}

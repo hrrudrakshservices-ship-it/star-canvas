@@ -329,6 +329,7 @@ export default function ProfilePage() {
                     }}
                     userRating={userRatings[image.id]}
                     canRate={!!currentUser && !isOwnProfile}
+                    currentUserId={currentUser?.id}
                     onRate={(rating) => handleRate(image.id, rating)}
                   />
                 ))}
