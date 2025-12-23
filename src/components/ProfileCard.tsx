@@ -3,7 +3,7 @@ import { StarRating } from "./StarRating";
 import { BadgeRank } from "./BadgeRank";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
-import { MapPin, Users, Image, Star } from "lucide-react";
+import { MapPin, Users, Image, Star, Globe, LockKeyhole } from "lucide-react";
 
 interface ProfileCardProps {
   id: string;
@@ -18,6 +18,7 @@ interface ProfileCardProps {
   totalRatingsReceived: number;
   isFollowing?: boolean;
   isOwnProfile?: boolean;
+  isPublic?: boolean;
   onFollow?: () => void;
   onUnfollow?: () => void;
   compact?: boolean;
@@ -36,6 +37,7 @@ export const ProfileCard = ({
   totalRatingsReceived,
   isFollowing,
   isOwnProfile,
+  isPublic = true,
   onFollow,
   onUnfollow,
   compact = false,
@@ -99,9 +101,16 @@ export const ProfileCard = ({
         </div>
 
         <div className="flex-1">
-          <h2 className="text-xl font-serif font-semibold text-foreground">
-            {username}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-serif font-semibold text-foreground">
+              {username}
+            </h2>
+            {isPublic ? (
+              <Globe className="w-4 h-4 text-gold" />
+            ) : (
+              <LockKeyhole className="w-4 h-4 text-muted-foreground" />
+            )}
+          </div>
           {(country || city) && (
             <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
               <MapPin className="w-3 h-3" />

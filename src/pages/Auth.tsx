@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Globe, LockKeyhole } from "lucide-react";
 import { z } from "zod";
+import { cn } from "@/lib/utils";
 
 const signUpSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").max(20),
@@ -19,6 +20,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState<{country?: string; countryCode?: string; state?: string; city?: string}>({});
@@ -82,6 +84,7 @@ export default function Auth() {
             country_code: location.countryCode,
             state: location.state,
             city: location.city,
+            is_public: isPublic,
           });
 
           if (profileError && !profileError.message.includes("duplicate")) {
@@ -173,6 +176,57 @@ export default function Auth() {
                 </button>
               </div>
             </div>
+
+            {/* Account Type Selection - Only show during signup */}
+            {!isLogin && (
+              <div className="space-y-3">
+                <Label>Account Type</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsPublic(true)}
+                    className={cn(
+                      "p-4 rounded-xl border-2 transition-all text-left",
+                      isPublic
+                        ? "border-gold bg-gold/10"
+                        : "border-border hover:border-muted-foreground"
+                    )}
+                  >
+                    <Globe className={cn(
+                      "w-6 h-6 mb-2",
+                      isPublic ? "text-gold" : "text-muted-foreground"
+                    )} />
+                    <p className="font-medium text-foreground">Public</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Everyone can see your profile and images
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsPublic(false)}
+                    className={cn(
+                      "p-4 rounded-xl border-2 transition-all text-left",
+                      !isPublic
+                        ? "border-gold bg-gold/10"
+                        : "border-border hover:border-muted-foreground"
+                    )}
+                  >
+                    <LockKeyhole className={cn(
+                      "w-6 h-6 mb-2",
+                      !isPublic ? "text-gold" : "text-muted-foreground"
+                    )} />
+                    <p className="font-medium text-foreground">Private</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Only followers can see your content
+                    </p>
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Note: Private accounts can switch to public later, but public accounts cannot become private.
+                </p>
+              </div>
+            )}
 
             {!isLogin && location.country && (
               <div className="p-3 rounded-lg bg-secondary/50 text-sm">

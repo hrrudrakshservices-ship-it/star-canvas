@@ -125,6 +125,7 @@ export type Database = {
           followers_count: number | null
           following_count: number | null
           id: string
+          is_public: boolean
           state: string | null
           total_images: number | null
           total_ratings_received: number | null
@@ -143,6 +144,7 @@ export type Database = {
           followers_count?: number | null
           following_count?: number | null
           id: string
+          is_public?: boolean
           state?: string | null
           total_images?: number | null
           total_ratings_received?: number | null
@@ -161,6 +163,7 @@ export type Database = {
           followers_count?: number | null
           following_count?: number | null
           id?: string
+          is_public?: boolean
           state?: string | null
           total_images?: number | null
           total_ratings_received?: number | null
